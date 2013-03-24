@@ -180,6 +180,7 @@ namespace raven {
 
 	void to_json_stream(const Message& message, std::ostream& output)
 	{
+		// XXX: escaping "/" => "\/"
 		boost::property_tree::json_parser::write_json(output, message);
 	}
 
@@ -192,6 +193,7 @@ namespace raven {
 
 	void encode(const Message& message, std::string& output)
 	{
+		// returns nothing, encode base64 and zlib always works
 		std::stringstream json;
 		to_json_stream(message, json);
 
@@ -217,7 +219,7 @@ namespace raven {
 			// need to replace '=' to 'A' - boost sense of humor
 			std::string prepared = encoded;
 			if (prepared.size() > 0 && prepared[prepared.size()-1] == '=') prepared[prepared.size()-1] = 'A';
-			if (prepared.size() > 0 && prepared[prepared.size()-2] == '=') prepared[prepared.size()-2] = 'A';
+			if (prepared.size() > 1 && prepared[prepared.size()-2] == '=') prepared[prepared.size()-2] = 'A';
 			
 			using boost::archive::iterators::transform_width;
 			using boost::archive::iterators::binary_from_base64;
