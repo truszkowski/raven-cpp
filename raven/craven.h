@@ -53,6 +53,59 @@ extern "C" {
 	 */
 	void craven_capture_directly(const char* level, const char* message, ...);
 
+	/** 
+	 * @brief Create message structure
+	 * 
+	 * @note Fields "message" and "level" MUST be set by
+	 *       method craven_message_put(...).
+	 *
+	 *       For example:
+	 *
+	 *       void* msg = craven_message_new();
+	 *       craven_message_put(msg, "level", "info");
+	 *       craven_message_put(msg, "message", "something");
+	 *       craven_message_put(msg, "extra.param", "super");
+	 *       craven_message_send(msg);
+	 *       craven_message_free(msg);
+	 *
+	 * @return pointer to message - always not NULL
+	 */
+	void* craven_message_new(void);
+
+	/** 
+	 * @brief Destroy message structure
+	 * 
+	 * @param message  pointer to message
+	 */
+	void craven_message_free(void* message);
+
+	/** 
+	 * @brief Add key and value
+	 * 
+	 * @param message  pointer to message
+	 * @param key      key
+	 * @param value    value
+	 */
+	void craven_message_put(void* message, const char* key, const char* value);
+
+	/** 
+	 * @brief Add key and formatted value
+	 * 
+	 * @param message  pointer to message
+	 * @param key      key
+	 * @param fmt      formatted value (printf style)
+	 * @param ...      optional arguments
+	 */
+	void craven_message_putf(void* message, const char* key, const char* fmt, ...)
+		__attribute__((format(printf, 3, 4)));
+
+	/** 
+	 * @brief Send message to Sentry
+	 * 
+	 * @param message  pointer to message
+	 */
+	void craven_message_send(void* message);
+
 	//ssize_t craven_encode(const char* data, char** encoded);
 	//ssize_t craven_decode(const char* data, char** decoded);
 

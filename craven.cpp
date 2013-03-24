@@ -26,3 +26,40 @@ void craven_capture_directly(const char* level, const char* message, ...)
 
 	raven::capture(msg);
 }
+
+void* craven_message_new(void)
+{
+	// XXX: ignore std::bad_alloc
+	return new raven::Message;
+}
+
+void craven_message_free(void* message)
+{
+	raven::Message* msg = (raven::Message*)message;
+	delete msg;
+}
+
+void craven_message_put(void* message, const char* key, const char* value)
+{
+	raven::Message* msg = (raven::Message*)message;
+	msg->put(key, value);
+}
+
+void craven_message_putf(void* message, const char* key, const char* fmt, ...)
+{
+	raven::Message* msg = (raven::Message*)message;
+	char value[4096]; // XXX: enough!:)
+
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(value, sizeof(value), fmt, args);
+	va_end(args);
+
+	msg->put(key, value);
+}
+
+void craven_message_send(void* message)
+{
+	raven::Message* msg = (raven::Message*)message;
+	raven::capture(*msg);
+}
