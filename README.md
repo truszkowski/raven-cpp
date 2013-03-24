@@ -2,6 +2,8 @@
 
 This is C/C++ client to sentry. 
 
+I wrote all of that yesterday (2013-03-23), so it's not tested very much.
+
 # Compilation:
 
 Requires boost and zlib, works only on linux
