@@ -6,3 +6,7 @@
 	$ cd build
 	$ cmake ..
 	$ make
+
+# Compatibility
+
+	It's supports only UDP.
