@@ -15,6 +15,14 @@ Requires boost and zlib, works only on linux
 	$ cmake ..
 	$ make
 
+It's compatibile with [VENV](https://github.com/truszkowski/venv), then:
+
+	$ venv create raven
+	$ mkdir build
+	$ cd build
+	$ cmake /path/to/raven-cpp
+	$ make all package
+
 # Use it
 
 In C++
