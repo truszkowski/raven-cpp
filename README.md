@@ -1,3 +1,7 @@
+# About
+
+This is C/C++ client to sentry. 
+
 # Compilation:
 
 Requires boost and zlib, works only on linux
@@ -81,5 +85,9 @@ Compile with ravenpp
 
 # Compatibility
 
-	Only UDP
+Only UDP for now.
 
+# License WTFPL
+
+If you copy, this will also your code now, including benefits, problems and bugs. No guarantee.
+Do what you wanna do, if you use it to create weapon of mass destruction - it's only depends on you:)
