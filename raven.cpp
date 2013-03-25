@@ -210,7 +210,8 @@ namespace raven {
 		typedef base64_from_binary<transform_width<std::string::const_iterator, 6, 8> > b64iter; 
 		
 		output.assign(b64iter(compressed.begin()), b64iter(compressed.end()));
-		output.append(4 - (output.size() % 4), '=');
+		int padding = output.size() % 4;
+		if (padding > 0) output.append(4 - padding, '=');
 	}
 
 	bool decode(const std::string& encoded, Message& message)
