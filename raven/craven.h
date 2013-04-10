@@ -36,6 +36,29 @@ extern "C" {
 	int craven_init(const char* url, int proc);
 
 	/** 
+	 * @brief Init module
+	 * 
+	 *        Works link init(url, proc) but reads url from
+	 *        environment variable: "SENTRY_DSN".
+	 *
+	 * @param proc  attach information from /proc/
+	 * 
+	 * @return return -1 if url is invalid or cannot open socket
+	 *         if ok returns 0
+	 */
+	int craven_init_env(int proc);
+
+	/** 
+	 * @brief Add key-value to attach to sentry message 
+	 * 
+	 * @param key    key
+	 * @param value  value
+	 */
+	void craven_add_global(const char* key, const char* value);
+	void craven_add_globalf(const char* key, const char* fmt, ...)
+		__attribute__((format(printf, 2, 3)));
+
+	/** 
 	 * @brief Send message
 	 *
 	 * @note Much more better to use craven_{debug,info,warning,error,fatal}
@@ -138,9 +161,7 @@ extern "C" {
       __FILE__, __LINE__);                                 \
 	craven_capture_directly(level, message,                  \
 			"culprit", __func__,                                 \
-			"tags.source_file", source_file,                     \
-			"extra.source.file", source_file,                    \
-			"extra.source.func", __PRETTY_FUNCTION__, ##args);   \
+			"extra.source.file", source_file, ##args);           \
 } while (0)
 
 

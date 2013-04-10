@@ -56,6 +56,29 @@ namespace raven {
 	bool init(const std::string& url, const bool proc = false);
 
 	/** 
+	 * @brief Init module
+	 *
+	 *        Works link init(url, proc) but reads url from
+	 *        environment variable: "SENTRY_DSN".
+	 * 
+	 * @param proc  attach information from /proc
+	 * 
+	 * @return returns false if url is invalid or cannot open socket
+	 */
+	bool init(const bool proc = false);
+
+	/** 
+	 * @brief Add key-value to attach to sentry message 
+	 * 
+	 * @param key    key
+	 * @param value  value
+	 */
+	void add_global(const std::string& key, const std::string& value);
+	void add_global(const std::string& key, const long long& value);
+	void add_global(const std::string& key, const unsigned long long& value);
+	void add_global(const std::string& key, const long double& value);
+
+	/** 
 	 * @brief Send message
 	 * 
 	 * @param message  message to send
@@ -130,10 +153,8 @@ namespace raven {
   char source_file[64];                                    \
   snprintf(source_file, sizeof(source_file), "%s:%d",      \
       __FILE__, __LINE__);                                 \
-	(message).put("culprit", __func__);                      \
-	(message).put("tags.source_file", source_file);          \
+	(message).put("culprit", __PRETTY_FUNCTION__);           \
 	(message).put("extra.source.file", source_file);         \
-	(message).put("extra.source.func", __PRETTY_FUNCTION__); \
 	raven::capture((message));                               \
 } while (0)
 

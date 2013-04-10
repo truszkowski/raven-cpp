@@ -89,6 +89,34 @@ namespace raven {
 		return true;
 	}
 
+	bool init(const bool proc)
+	{
+		const char* sentry_dsn = getenv("SENTRY_DSN");
+		if (sentry_dsn == NULL) return false;
+
+		return init(sentry_dsn, proc);
+	}
+	
+	void add_global(const std::string& key, const std::string& value)
+	{
+		global_message[key] = value;
+	}
+
+	void add_global(const std::string& key, const long long& value)
+	{
+		global_message[key] = boost::lexical_cast<std::string>(value);
+	}
+
+	void add_global(const std::string& key, const unsigned long long& value)
+	{
+		global_message[key] = boost::lexical_cast<std::string>(value);
+	}
+
+	void add_global(const std::string& key, const long double& value)
+	{
+		global_message[key] = boost::lexical_cast<std::string>(value);
+	}
+
 	static inline time_t capture_attach_main(Message& message)
 	{
 		struct timeval tv_now;

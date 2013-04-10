@@ -6,6 +6,28 @@ int craven_init(const char* url, int proc)
 	return raven::init(url, proc) ? 0 : -1;
 }
 
+int craven_init_env(int proc)
+{
+	return raven::init(proc);
+}
+
+void craven_add_global(const char* key, const char* value)
+{
+	raven::add_global(key, value);
+}
+
+void craven_add_globalf(const char* key, const char* fmt, ...)
+{
+	char value[4096]; // XXX: enough!:)
+
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(value, sizeof(value), fmt, args);
+	va_end(args);
+
+	raven::add_global(key, value);
+}
+
 void craven_capture_directly(const char* level, const char* message, ...)
 {
 	raven::Message msg;

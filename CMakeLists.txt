@@ -21,8 +21,8 @@ target_link_libraries (example ravenpp boost_iostreams z)
 add_executable (cexample example.c)
 target_link_libraries (cexample ravenpp boost_iostreams z stdc++)
 
-add_executable (raven-cmd raven-cmd.cpp)
-target_link_libraries (raven-cmd ravenpp boost_iostreams z)
+add_executable (raven-notify raven-notify.cpp)
+target_link_libraries (raven-notify ravenpp boost_iostreams z)
 
 add_executable (raven-server raven-server.cpp)
 target_link_libraries (raven-server ravenpp boost_iostreams z)
@@ -35,7 +35,7 @@ target_link_libraries (raven_decode ravenpp boost_iostreams z)
 
 install (FILES raven/raven.h raven/craven.h DESTINATION include/raven)
 install (TARGETS ravenpp DESTINATION lib/)
-install (TARGETS raven-cmd raven-server DESTINATION bin/)
+install (TARGETS raven-notify raven-server DESTINATION bin/)
 
 if (DEFINED ENV{VIRTUAL_ENV})
 	include (CPack)
