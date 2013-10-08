@@ -5,6 +5,8 @@
 #include <cstdlib>
 #include <string>
 #include <ostream>
+#include <map>
+#include <netinet/in.h>
 #include <boost/property_tree/ptree.hpp>
 
 namespace raven {
@@ -33,6 +35,46 @@ namespace raven {
 	 *        http://sentry.readthedocs.org/en/latest/developer/client/index.html
 	 */
 	typedef boost::property_tree::ptree Message;
+
+	
+	typedef struct dsn_s {
+		std::map<std::string,std::string> global_message;
+		std::string global_key;
+		time_t global_started;
+		bool global_attach_proc;
+		unsigned int global_seed;
+		int global_socket;
+		struct sockaddr_in global_addr;
+		
+		int port;
+		char key[100];
+		char secret[100];
+		char host[100];
+		char project[100];
+		char none;
+	} dsn_t;
+	
+	/**
+	 * @brief Init custom dsn, by initializing dsn_t type structure
+	 * 
+	 * Url must be like that:
+	 *        "udp://<key>:<secret>@<host>:<port>/<project>"
+	 *
+	 *        If proc == true:
+	 *
+	 *          File "/proc/self/status" 
+	 *          Add values for: VmPeak, VmSize, VmLck, VmHWM, VmRSS, 
+	 *          VmData, VmStk, VmExe, VmLib, VmPTE, FDSize and Threads.
+	 *
+	 *          File "/proc/loadavg" - gets whole line. 
+	 * 
+     * @param dsn - pointer to dsn_t struct
+     * @param url - url
+     * @param proc - attach information from /proc/
+	 * 
+     * @return false if url is invalid or cannot initialize (open socket etc.) 
+     */
+	bool init_dsn(dsn_t* dsn, const std::string& url, const bool proc);
 
 	/** 
 	 * @brief Init module

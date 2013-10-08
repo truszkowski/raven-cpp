@@ -31,9 +31,61 @@
 
 namespace raven {
 
-	static std::map<std::string,std::string> global_message;
+	bool init_dsn(dsn_t* dsn, const std::string& url, const bool proc)
+	{
+		dsn->global_started = 0;
+		dsn->global_attach_proc = proc;
+		dsn->global_seed = 0;
+		dsn->global_socket = -1;
+		
+		int n = sscanf(url.c_str(),
+		  "udp://%100[a-z0-9]:%100[a-z0-9]@%100[^:]:%d/%[0-9]%c",
+		  dsn->key, dsn->secret, dsn->host, &dsn->port, dsn->project, &dsn->none);
+
+		if (n != 5 || dsn->port <= 0 || dsn->port >= 65536) {
+			std::cerr << "raven::init(): cannot read url '" << url << "'" << std::endl;
+			return false;
+		}
+
+		struct hostent* he = gethostbyname(dsn->host);
+		if (!he) {
+			std::cerr << "raven::init(): gethostbyname('" << dsn->host << "') failed: "
+			  << h_errno << ", " << hstrerror(h_errno) << std::endl;
+			return false;
+		}
+
+		struct in_addr** addr_list = (struct in_addr**) he->h_addr_list;
+		dsn->global_addr.sin_family = AF_INET;
+		dsn->global_addr.sin_addr = *addr_list[0];
+		dsn->global_addr.sin_port = htons(dsn->port);
+
+		struct utsname sysname;
+		uname(&sysname);
+
+		dsn->global_key = dsn->key;
+		dsn->global_attach_proc = proc;
+		dsn->global_started = time(0);
+		dsn->global_seed = dsn->global_started;
+
+		dsn->global_message["project"] = dsn->project;
+		dsn->global_message["server_name"] = sysname.nodename;
+		dsn->global_message["platform"] = "C++";
+		dsn->global_message["logger"] = "root";
+		dsn->global_message["extra.sys.machine"] = sysname.machine;
+
+		dsn->global_socket = socket(AF_INET, SOCK_DGRAM, 0);
+		if (dsn->global_socket < 0) {
+			std::cerr << "raven::init(): socket failed: " << errno << ", " << strerror(errno) << std::endl;
+			return false;
+		}
+
+		return true;
+	}
+
+
+	static std::map<std::string, std::string> global_message;
 	static std::string global_key;
-	
+
 	static time_t global_started = 0;
 	static bool global_attach_proc = false;
 	static unsigned int global_seed = 0;
@@ -45,9 +97,9 @@ namespace raven {
 		char key[100], secret[100], host[100], project[100], none;
 		int port;
 
-		int n = sscanf(url.c_str(), 
-				"udp://%100[a-z0-9]:%100[a-z0-9]@%100[^:]:%d/%[0-9]%c", 
-				key, secret, host, &port, project, &none);
+		int n = sscanf(url.c_str(),
+		  "udp://%100[a-z0-9]:%100[a-z0-9]@%100[^:]:%d/%[0-9]%c",
+		  key, secret, host, &port, project, &none);
 
 		if (n != 5 || port <= 0 || port >= 65536) {
 			std::cerr << "raven::init(): cannot read url '" << url << "'" << std::endl;
@@ -56,11 +108,11 @@ namespace raven {
 
 		struct hostent* he = gethostbyname(host);
 		if (!he) {
-			std::cerr << "raven::init(): gethostbyname('" << host << "') failed: " 
-					<< h_errno << ", " << hstrerror(h_errno) << std::endl;
+			std::cerr << "raven::init(): gethostbyname('" << host << "') failed: "
+			  << h_errno << ", " << hstrerror(h_errno) << std::endl;
 			return false;
 		}
-		
+
 		struct in_addr** addr_list = (struct in_addr**)he->h_addr_list;
 		global_addr.sin_family = AF_INET;
 		global_addr.sin_addr = *addr_list[0];
@@ -96,7 +148,7 @@ namespace raven {
 
 		return init(sentry_dsn, proc);
 	}
-	
+
 	void add_global(const std::string& key, const std::string& value)
 	{
 		global_message[key] = value;
@@ -131,8 +183,8 @@ namespace raven {
 
 		char event_id[33];
 		sprintf(event_id, "%.8x%.8x%.8x%.8x",
-				(unsigned int)tv_now.tv_sec, (unsigned int)tv_now.tv_usec, 
-				rand_r(&global_seed), rand_r(&global_seed));
+		  (unsigned int) tv_now.tv_sec, (unsigned int) tv_now.tv_usec,
+		  rand_r(&global_seed), rand_r(&global_seed));
 
 		message.put("event_id", event_id);
 		message.put("timestamp", tstamp_now);
@@ -150,8 +202,8 @@ namespace raven {
 			size_t pos = line.find(':');
 
 			if (line.compare(0, 2, "Vm", 0, 2) == 0 ||
-					line.compare(0, 6, "FDSize", 0, 6) == 0 ||
-					line.compare(0, 7, "Threads", 0, 7) == 0) {
+			  line.compare(0, 6, "FDSize", 0, 6) == 0 ||
+			  line.compare(0, 7, "Threads", 0, 7) == 0) {
 				message.put("extra.sys." + line.substr(0, pos), boost::trim_copy(line.substr(pos + 1)));
 			}
 		}
@@ -173,8 +225,8 @@ namespace raven {
 
 	static inline void capture_send_packet(const std::string& packet)
 	{
-		ssize_t n = sendto(global_socket, packet.data(), packet.size(), MSG_DONTWAIT, 
-				(struct sockaddr*)&global_addr, sizeof(global_addr));
+		ssize_t n = sendto(global_socket, packet.data(), packet.size(), MSG_DONTWAIT,
+		  (struct sockaddr*) &global_addr, sizeof(global_addr));
 
 		if (n < 0) {
 			std::cerr << "raven::capture_send_packet(): not sent: " << errno << ", " << strerror(errno) << std::endl;
@@ -193,8 +245,8 @@ namespace raven {
 				capture_attach_proc(message);
 			}
 
-			for (std::map<std::string,std::string>::const_iterator 
-					it = global_message.begin(); it != global_message.end(); ++it) {
+			for (std::map<std::string, std::string>::const_iterator
+				it = global_message.begin(); it != global_message.end(); ++it) {
 				message.put(it->first, it->second);
 			}
 
@@ -235,8 +287,8 @@ namespace raven {
 
 		using boost::archive::iterators::transform_width;
 		using boost::archive::iterators::base64_from_binary;
-		typedef base64_from_binary<transform_width<std::string::const_iterator, 6, 8> > b64iter; 
-		
+		typedef base64_from_binary<transform_width<std::string::const_iterator, 6, 8> > b64iter;
+
 		output.assign(b64iter(compressed.begin()), b64iter(compressed.end()));
 		int padding = output.size() % 4;
 		if (padding > 0) output.append(4 - padding, '=');
@@ -247,9 +299,9 @@ namespace raven {
 		try {
 			// need to replace '=' to 'A' - boost sense of humor
 			std::string prepared = encoded;
-			if (prepared.size() > 0 && prepared[prepared.size()-1] == '=') prepared[prepared.size()-1] = 'A';
-			if (prepared.size() > 1 && prepared[prepared.size()-2] == '=') prepared[prepared.size()-2] = 'A';
-			
+			if (prepared.size() > 0 && prepared[prepared.size() - 1] == '=') prepared[prepared.size() - 1] = 'A';
+			if (prepared.size() > 1 && prepared[prepared.size() - 2] == '=') prepared[prepared.size() - 2] = 'A';
+
 			using boost::archive::iterators::transform_width;
 			using boost::archive::iterators::binary_from_base64;
 			typedef transform_width<binary_from_base64<std::string::const_iterator>, 8, 6> b64iter;
@@ -257,7 +309,7 @@ namespace raven {
 			std::stringstream compressed;
 			//std::copy(b64iter(prepared.begin()), b64iter(prepared.end()), compressed);
 			compressed << compressed2;
-	
+
 			boost::iostreams::filtering_istream filtering;
 			filtering.push(boost::iostreams::zlib_decompressor());
 			filtering.push(compressed);
