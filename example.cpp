@@ -48,7 +48,7 @@
 
 int main(void)
 {
-	bool ready = raven::init("udp://12345678123456781234567812345678:01230123012301230123012301230123@127.0.0.1:12340/1", false);
+	bool ready = raven::init("udp://12345678123456781234567812345678:01230123012301230123012301230123@127.0.0.1:12340/1", true);
 	
 	if (!ready) {
 		std::cout << "raven_init failed" << std::endl;

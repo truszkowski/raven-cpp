@@ -171,7 +171,7 @@ namespace raven {
 	 * @param message  message to send
 	 * @param dsn custom dsn, leave or send null to use default
 	 */
-	void capture(Message& message, dsn_t* dsn=NULL);
+	void capture(Message message, dsn_t* dsn=NULL);
 
 	/** 
 	 * @brief Get json string

@@ -319,7 +319,7 @@ namespace raven {
 		}
 	}
 
-	void capture(Message& message, dsn_t* dsn)
+	void capture(Message message, dsn_t* dsn)
 	{
 		// do nothing if init() not called
 		if ((!dsn && global_started == 0) || (dsn && dsn->global_started == 0)) {
@@ -329,7 +329,7 @@ namespace raven {
 		try {
 			time_t t_now = capture_attach_main(message, dsn);
 
-			if ((dsn && dsn->global_attach_proc) || global_attach_proc) {
+			if ((dsn && dsn->global_attach_proc) || (global_attach_proc && !dsn)) {
 				capture_attach_proc(message);
 			}
 
