@@ -4,7 +4,7 @@
 
 int main(void)
 {
-	bool ready = raven::init("udp://12345678123456781234567812345678:01230123012301230123012301230123@127.0.0.1:12340/1", true);
+	bool ready = raven::init("udp://12345678123456781234567812345678:01230123012301230123012301230123@127.0.0.1:12340/1", false);
 	
 	if (!ready) {
 		std::cout << "raven_init failed" << std::endl;
@@ -22,14 +22,14 @@ int main(void)
 	raven::dsn_t dsn;
 	ready = raven::init_dsn(
 	  &dsn, // struct dsn_t
-	  "udp://12345678123456781234567812345678:01230123012301230123012301230123@127.0.0.1:12340/1", // url
-	  true // include /proc/ info
+	  "udp://11111111111111111111111111111111:22222222222222222222222222222222@127.0.0.1:12340/1", // url
+	  false // include /proc/ info
 	);
 	
 	if(!ready) {
 		std::cout << "raven_init_failed" << std::endl;
 		return EXIT_FAILURE;
 	}
-	
+	raven_debug_dsn(msg, &dsn);
 	return EXIT_SUCCESS;
 }

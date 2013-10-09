@@ -168,37 +168,77 @@ namespace raven {
  */
 
 #define raven_debug(message) do {                          \
-	(message).put("level", "debug");                         \
-	raven_capture((message));                                \
+	(message).put("level", "debug");                       \
+	raven_capture((message));                              \
 } while (0)
 
 #define raven_info(message) do {                           \
-	(message).put("level", "info");                          \
-	raven_capture((message));                                \
+	(message).put("level", "info");                        \
+	raven_capture((message));                              \
 } while (0)
 
 #define raven_warning(message) do {                        \
-	(message).put("level", "warning");                       \
-	raven_capture((message));                                \
+	(message).put("level", "warning");                     \
+	raven_capture((message));                              \
 } while (0)
 
 #define raven_error(message) do {                          \
-	(message).put("level", "error");                         \
-	raven_capture((message));                                \
+	(message).put("level", "error");                       \
+	raven_capture((message));                              \
 } while (0)
 
 #define raven_fatal(message) do {                          \
-	(message).put("level", "fatal");                         \
-	raven_capture((message));                                \
+	(message).put("level", "fatal");                       \
+	raven_capture((message));                              \
 } while (0)
 
 #define raven_capture(message) do {                        \
   char source_file[64];                                    \
   snprintf(source_file, sizeof(source_file), "%s:%d",      \
       __FILE__, __LINE__);                                 \
-	(message).put("culprit", __PRETTY_FUNCTION__);           \
-	(message).put("extra.source.file", source_file);         \
-	raven::capture((message));                               \
+	(message).put("culprit", __PRETTY_FUNCTION__);         \
+	(message).put("extra.source.file", source_file);       \
+	raven::capture((message));                             \
+} while (0)
+
+
+/**
+ * @brief Macros raven_{debug,info,warning,error,fatal}_dsn.
+ * with custom dsn parameter
+ */
+
+#define raven_debug_dsn(message, dsn) do {                 \
+	(message).put("level", "debug");                       \
+	raven_capture_dsn((message), (dsn));                   \
+} while (0)
+
+#define raven_info_dsn(message, dsn) do {                  \
+	(message).put("level", "info");                        \
+	raven_capture_dsn((message), (dsn));                   \
+} while (0)
+
+#define raven_warning_dsn(message, dsn) do {               \
+	(message).put("level", "warning");                     \
+	raven_capture_dsn((message), (dsn));                   \
+} while (0)
+
+#define raven_error_dsn(message, dsn) do {                 \
+	(message).put("level", "error");                       \
+	raven_capture_dsn((message), (dsn));                   \
+} while (0)
+
+#define raven_fatal_dsn(message, dsn) do {                 \
+	(message).put("level", "fatal");                       \
+	raven_capture_dsn((message), (dsn));                   \
+} while (0)
+
+#define raven_capture_dsn(message, dsn) do {               \
+  char source_file[64];                                    \
+  snprintf(source_file, sizeof(source_file), "%s:%d",      \
+      __FILE__, __LINE__);                                 \
+	(message).put("culprit", __PRETTY_FUNCTION__);         \
+	(message).put("extra.source.file", source_file);       \
+	raven::capture((message), (dsn));                      \
 } while (0)
 
 #endif
