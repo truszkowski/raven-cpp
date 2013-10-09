@@ -115,17 +115,18 @@ namespace raven {
 	 * @param key    key
 	 * @param value  value
 	 */
-	void add_global(const std::string& key, const std::string& value);
-	void add_global(const std::string& key, const long long& value);
-	void add_global(const std::string& key, const unsigned long long& value);
-	void add_global(const std::string& key, const long double& value);
+	void add_global(const std::string& key, const std::string& value, dsn_t* dsn=NULL);
+	void add_global(const std::string& key, const long long& value, dsn_t* dsn=NULL);
+	void add_global(const std::string& key, const unsigned long long& value, dsn_t* dsn=NULL);
+	void add_global(const std::string& key, const long double& value, dsn_t* dsn=NULL);
 
 	/** 
 	 * @brief Send message
 	 * 
 	 * @param message  message to send
+	 * @param dsn custom dsn, leave or send null to use default
 	 */
-	void capture(Message& message);
+	void capture(Message& message, dsn_t* dsn=NULL);
 
 	/** 
 	 * @brief Get json string

@@ -149,27 +149,43 @@ namespace raven {
 		return init(sentry_dsn, proc);
 	}
 
-	void add_global(const std::string& key, const std::string& value)
+	void add_global(const std::string& key, const std::string& value, dsn_t* dsn)
 	{
-		global_message[key] = value;
+		if(!dsn) {
+			global_message[key] = value;
+		} else {
+			dsn->global_message[key] = value;
+		}
 	}
 
-	void add_global(const std::string& key, const long long& value)
+	void add_global(const std::string& key, const long long& value, dsn_t* dsn)
 	{
-		global_message[key] = boost::lexical_cast<std::string>(value);
+		if(!dsn) {
+			global_message[key] = boost::lexical_cast<std::string>(value);
+		} else {
+			dsn->global_message[key] = boost::lexical_cast<std::string>(value);
+		}
 	}
 
-	void add_global(const std::string& key, const unsigned long long& value)
+	void add_global(const std::string& key, const unsigned long long& value, dsn_t* dsn)
 	{
-		global_message[key] = boost::lexical_cast<std::string>(value);
+		if(!dsn) {
+			global_message[key] = boost::lexical_cast<std::string>(value);
+		} else {
+			dsn->global_message[key] =  boost::lexical_cast<std::string>(value);
+		}
 	}
 
-	void add_global(const std::string& key, const long double& value)
+	void add_global(const std::string& key, const long double& value, dsn_t* dsn)
 	{
-		global_message[key] = boost::lexical_cast<std::string>(value);
+		if(!dsn) {
+			global_message[key] = boost::lexical_cast<std::string>(value);
+		} else {
+			dsn->global_message[key] = boost::lexical_cast<std::string>(value);
+		}
 	}
 
-	static inline time_t capture_attach_main(Message& message)
+	static inline time_t capture_attach_main(Message& message, dsn_t* dsn)
 	{
 		struct timeval tv_now;
 		gettimeofday(&tv_now, NULL);
@@ -182,14 +198,23 @@ namespace raven {
 		strftime(tstamp_now, sizeof(tstamp_now), "%FT%T", &tm_now);
 
 		char event_id[33];
-		sprintf(event_id, "%.8x%.8x%.8x%.8x",
-		  (unsigned int) tv_now.tv_sec, (unsigned int) tv_now.tv_usec,
-		  rand_r(&global_seed), rand_r(&global_seed));
-
+		if(!dsn) {
+			sprintf(event_id, "%.8x%.8x%.8x%.8x",
+			  (unsigned int) tv_now.tv_sec, (unsigned int) tv_now.tv_usec,
+			  rand_r(&global_seed), rand_r(&global_seed));
+		} else {
+			sprintf(event_id, "%.8x%.8x%.8x%.8x",
+			  (unsigned int) tv_now.tv_sec, (unsigned int) tv_now.tv_usec,
+			  rand_r(&dsn->global_seed), rand_r(&dsn->global_seed));			
+		}
+		
 		message.put("event_id", event_id);
 		message.put("timestamp", tstamp_now);
-		message.put("extra.sys.uptime", boost::lexical_cast<std::string>(t_now - global_started));
-
+		if(!dsn) {
+			message.put("extra.sys.uptime", boost::lexical_cast<std::string>(t_now - global_started));
+		} else {
+			message.put("extra.sys.uptime", boost::lexical_cast<std::string>(t_now - dsn->global_started));
+		}
 		return t_now;
 	}
 
@@ -213,46 +238,72 @@ namespace raven {
 		message.put("extra.sys.load", line);
 	}
 
-	static inline void capture_prepare_packet(const Message& message, time_t t_now, std::string& packet)
+	static inline void capture_prepare_packet(const Message& message, time_t t_now, std::string& packet, dsn_t* dsn)
 	{
 		std::string encoded;
-		encode(message, encoded);
-
 		std::stringstream packet_stream;
-		packet_stream << "Sentry sentry_timestamp=" << t_now << ".0, sentry_client=raven-cpp/0.0.1, sentry_version=2.0, sentry_key=" << global_key << "\n\n" << encoded;
-		packet = packet_stream.str();
-	}
 
-	static inline void capture_send_packet(const std::string& packet)
-	{
-		ssize_t n = sendto(global_socket, packet.data(), packet.size(), MSG_DONTWAIT,
-		  (struct sockaddr*) &global_addr, sizeof(global_addr));
+		if(!dsn) {
+			encode(message, encoded);
 
-		if (n < 0) {
-			std::cerr << "raven::capture_send_packet(): not sent: " << errno << ", " << strerror(errno) << std::endl;
+			packet_stream << "Sentry sentry_timestamp=" << t_now << ".0, sentry_client=raven-cpp/0.0.1, sentry_version=2.0, sentry_key=" << global_key << "\n\n" << encoded;
+			packet = packet_stream.str();
+		} else {
+			encode(message, encoded);
+
+			packet_stream << "Sentry sentry_timestamp=" << t_now << ".0, sentry_client=raven-cpp/0.0.1, sentry_version=2.0, sentry_key=" << dsn->global_key << "\n\n" << encoded;
+			packet = packet_stream.str();
 		}
 	}
 
-	void capture(Message& message)
+	static inline void capture_send_packet(const std::string& packet, dsn_t* dsn)
+	{
+		if(!dsn) {
+			ssize_t n = sendto(global_socket, packet.data(), packet.size(), MSG_DONTWAIT,
+			  (struct sockaddr*) &global_addr, sizeof(global_addr));
+
+			if (n < 0) {
+				std::cerr << "raven::capture_send_packet(): not sent: " << errno << ", " << strerror(errno) << std::endl;
+			}
+		} else {
+			ssize_t n = sendto(dsn->global_socket, packet.data(), packet.size(), MSG_DONTWAIT,
+			  (struct sockaddr*) &dsn->global_addr, sizeof(dsn->global_addr));
+
+			if (n < 0) {
+				std::cerr << "raven::capture_send_packet(): not sent: " << errno << ", " << strerror(errno) << std::endl;
+			}
+		}
+	}
+
+	void capture(Message& message, dsn_t* dsn)
 	{
 		// do nothing if init() not called
-		if (global_started == 0) return;
+		if ((!dsn && global_started == 0) || (dsn && dsn->global_started == 0)) {
+			return;
+		}
 
 		try {
-			time_t t_now = capture_attach_main(message);
+			time_t t_now = capture_attach_main(message, dsn);
 
-			if (global_attach_proc) {
+			if ((dsn && dsn->global_attach_proc) || global_attach_proc) {
 				capture_attach_proc(message);
 			}
 
-			for (std::map<std::string, std::string>::const_iterator
-				it = global_message.begin(); it != global_message.end(); ++it) {
-				message.put(it->first, it->second);
+			if (!dsn) {
+				for (std::map<std::string, std::string>::const_iterator
+					it = global_message.begin(); it != global_message.end(); ++it) {
+					message.put(it->first, it->second);
+				}
+			} else {
+				for (std::map<std::string, std::string>::const_iterator
+					it = dsn->global_message.begin(); it != dsn->global_message.end(); ++it) {
+					message.put(it->first, it->second);
+				}
 			}
 
 			std::string packet;
-			capture_prepare_packet(message, t_now, packet);
-			capture_send_packet(packet);
+			capture_prepare_packet(message, t_now, packet, dsn);
+			capture_send_packet(packet, dsn);
 		} catch (const std::exception& e) {
 			std::cerr << "raven::capture(): exception catched: " << e.what() << std::endl;
 		}
