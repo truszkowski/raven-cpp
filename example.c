@@ -19,6 +19,21 @@ int main(void)
 	craven_message_put(msg, "message", "this is second message");
 	craven_message_putf(msg, "extra.param", "%d, %d, %d, %d", 123, 120, 112, 102);
 	craven_message_send(msg);
+	
+	// custom dsn example
+	c_dsn_t dsn;
+	ret = craven_init_dsn(&dsn, "udp://77777777777777777777777777777777:88888888888888888888888888888888@127.0.0.1:12340/1", 1 );
+	
+	craven_message_send_dsn(&dsn, msg);
+
+	craven_info_dsn(&dsn, "this is message",
+		"extra.anything", "bla ba da ba da",
+		NULL);
+	
+	// dsn object holds pointer to c++ dsn_t object, it should remove before
+	// destroy
+	craven_destroy_dsn(&dsn);
+	
 	craven_message_free(msg);
 	return 0;
 }
