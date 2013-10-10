@@ -143,6 +143,16 @@ extern "C" {
 		__attribute__((format(printf, 2, 3)));
 
 	/** 
+	 * @brief Add key-value to attach to sentry message to custom dsn
+	 * 
+	 * @param key    key
+	 * @param value  value
+	 */
+	void craven_add_global_dsn(c_dsn_t* dsn, const char* key, const char* value);
+	void craven_add_globalf_dsn(c_dsn_t* dsn, const char* key, const char* fmt, ...)
+		__attribute__((format(printf, 3, 4)));
+	
+	/** 
 	 * @brief Send message
 	 *
 	 * @note Much more better to use craven_{debug,info,warning,error,fatal}
@@ -216,6 +226,12 @@ extern "C" {
 	 */
 	void craven_message_send(void* message);
 
+	/** 
+	 * @brief Send message to Sentry with custom dsn
+	 * 
+	 * @param dsn    dsn
+	 * @param message  pointer to message
+	 */
 	void craven_message_send_dsn(c_dsn_t* dsn, void* message);
 	
 	//ssize_t craven_encode(const char* data, char** encoded);
