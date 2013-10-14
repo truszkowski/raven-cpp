@@ -13,6 +13,10 @@ else ()
 	set (CMAKE_COLOR_MAKEFILE     on)
 	set (CMAKE_USE_RELATIVE_PATHS on)
 endif ()
+	
+file (READ VERSION RAVEN_VERSION)
+string (STRIP "${RAVEN_VERSION}" RAVEN_VERSION)
+add_definitions (-DVERSION="${RAVEN_VERSION}")
 
 add_library (ravenpp raven.cpp craven.cpp)
 

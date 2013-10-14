@@ -173,7 +173,7 @@ namespace raven {
 
 		encode(message, encoded);
 
-		packet_stream << "Sentry sentry_timestamp=" << t_now << ".0, sentry_client=raven-cpp/0.0.1, sentry_version=2.0, sentry_key=" << key << "\n\n" << encoded;
+		packet_stream << "Sentry sentry_timestamp=" << t_now << ".0, sentry_client=raven-cpp/" << VERSION << ", sentry_version=2.0, sentry_key=" << key << "\n\n" << encoded;
 		packet = packet_stream.str();
 	}
 
