@@ -45,6 +45,11 @@ add_executable (tests_init tests/init.cpp)
 target_link_libraries (tests_init ravenpp boost_iostreams z)
 add_test (init tests_init)
 
+add_executable (tests_send tests/send.cpp)
+target_link_libraries (tests_send ravenpp boost_iostreams z)
+add_test (send tests_send)
+
+
 install (FILES raven/raven.h raven/craven.h DESTINATION include/raven)
 install (TARGETS ravenpp DESTINATION lib/)
 install (TARGETS raven-notify raven-server DESTINATION bin/)
