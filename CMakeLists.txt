@@ -35,8 +35,15 @@ target_link_libraries (raven-server ravenpp boost_iostreams z)
 add_executable (raven_decode raven_decode.cpp)
 target_link_libraries (raven_decode ravenpp boost_iostreams z)
 
-#enable_testing ()
-#add_test ()
+enable_testing ()
+
+add_executable (tests_encode tests/encode.cpp)
+target_link_libraries (tests_encode ravenpp boost_iostreams z)
+add_test (encode tests_encode)
+
+add_executable (tests_init tests/init.cpp)
+target_link_libraries (tests_init ravenpp boost_iostreams z)
+add_test (init tests_init)
 
 install (FILES raven/raven.h raven/craven.h DESTINATION include/raven)
 install (TARGETS ravenpp DESTINATION lib/)
