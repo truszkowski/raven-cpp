@@ -47,7 +47,7 @@ add_test (init tests_init)
 
 add_executable (tests_send tests/send.cpp)
 target_link_libraries (tests_send ravenpp boost_iostreams z)
-add_test (send tests_send)
+add_test (send tests_send 16002) ## FIXME <<-- be careful!!! that port could be used!!!
 
 
 install (FILES raven/raven.h raven/craven.h DESTINATION include/raven)
