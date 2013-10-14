@@ -168,14 +168,7 @@ namespace raven {
 			int socket;
 			//!< sentry instance address
 			struct sockaddr_in addr;
-			
-			/*int port;
-			char key[100];
-			char secret[100];
-			char host[100];
-			char project[100];
-			char none;*/
-
+				
 			/** 
 			 * @brief Add to message `timestamp`, `event_id`, `extra.sys.uptime`.
 			 * 
