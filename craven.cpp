@@ -1,77 +1,41 @@
-/*
-                    +IMMMM .~MMZ.
-                 .MM NMMMMM  .MMMM
-                MMM. MMMMMMZ   MMMM.
-              .MMM, .MMMMMMM  ..MMMM
-              .MMM. ZMMMMMMM.   MMMM.
-              .MMM  =MMMMMMM.   MMMM.
-              .MMM . MMMMMMM.  MMMM
-                MMM: MMMMMMM .ZMMM
-                  MMM MMMMMM.~MO
-                      ~MMMN..   ...M.
-                        .?M8 .. +.NI
-                       . .....  MNM D
-                        : D..Z...MO.?.
-                          NM . M..  .~
-                         .~I...     .,
-                          .M.       M.
-                         .M.        :
-                        .M        .MM
-                       .7           M.
-                       M            MO
-                      M.            .8       .=MMMMMMM .
-                     M.             .I    MM$          ,M
-                    .                M MM .             .M
-                    M                 N              .   M
-                   .:                                M   ,.
-                                                     +   .
-                    ,                                Z  .M
-                   .M                               ..  ,
-                    M                  .            M.  M..  =+, .
-                     M        ?        D           :+   7  ..M$ ..
-                     .Z        M.       ,         DMM.     .. =M.
-                      ,M      .8,       M        M.. .MMM,...
-               .. N  M$ MI.    MM.      :.   ..M$
-             .$...  =  MM . D,,MM7       MMMM,
-                   Z...    MN   MM.      MMOMMM7..
-                      .D.,8      M.      :..:NM$
-                                 MM.      .MM~.,
-                                  MM.  ~=7DMMM$.
-
-          S   E   A    L       O   F      T   H   E       D   A   Y
-*/
-
-
 #include "raven/raven.h"
 #include "raven/craven.h"
 
-int craven_init(const char* url, int proc)
-{
-	return raven::init(url, proc) ? 0 : -1;
-}
 
-int craven_init_dsn(c_dsn_t* cdsn, const char* url, int proc)
+int craven_init(const char* url, int flags)
 {
-	cdsn->url = url;
-	cdsn->proc = proc;
-	cdsn->pdsn_t = NULL;
-	raven::dsn_t* dsn = new raven::dsn_t;
-	dsn->global_attach_proc = (bool)proc;
-	cdsn->pdsn_t = dsn;
-	return raven::init_dsn(dsn, url, proc);
-}
-
-void craven_destroy_dsn(c_dsn_t* cdsn)
-{
-	if(cdsn->pdsn_t) {
-		delete (raven::dsn_t*)cdsn->pdsn_t;
-		cdsn->pdsn_t = NULL;
+	try {
+		raven::set_default(url, flags);
+		return 0;
+	} catch (std::exception) {
+		return -1;
 	}
 }
 
-int craven_init_env(int proc)
+
+dsn_t craven_init_dsn(const char* url, int flags)
 {
-	return raven::init(proc);
+	try {
+		raven::Dsn* dsn = new raven::Dsn(url, flags);
+		return (void*)dsn;
+	} catch (std::exception) {
+		return NULL;
+	}
+}
+
+void craven_destroy_dsn(dsn_t dsn)
+{
+	delete (raven::Dsn*)dsn;
+}
+
+int craven_init_env(int flags)
+{
+	try {
+		raven::set_default(flags);
+		return 0;
+	} catch (std::exception) {
+		return -1;
+	}
 }
 
 void craven_add_global(const char* key, const char* value)
@@ -91,12 +55,12 @@ void craven_add_globalf(const char* key, const char* fmt, ...)
 	raven::add_global(key, value);
 }
 
-void craven_add_global_dsn(c_dsn_t* dsn, const char* key, const char* value)
+void craven_add_global_dsn(dsn_t dsn, const char* key, const char* value)
 {
-	raven::add_global(key, value, (raven::dsn_t*)dsn->pdsn_t);
+	((raven::Dsn*)dsn)->add_global(key, value);
 }
 
-void craven_add_globalf_dsn(c_dsn_t* dsn, const char* key, const char* fmt, ...)
+void craven_add_globalf_dsn(dsn_t dsn, const char* key, const char* fmt, ...)
 {
 	char value[4096]; // XXX: enough!:)
 
@@ -105,7 +69,7 @@ void craven_add_globalf_dsn(c_dsn_t* dsn, const char* key, const char* fmt, ...)
 	vsnprintf(value, sizeof(value), fmt, args);
 	va_end(args);
 
-	raven::add_global(key, value, (raven::dsn_t*)dsn->pdsn_t);
+	((raven::Dsn*)dsn)->add_global(key, value);
 }
 
 
@@ -130,7 +94,7 @@ void craven_capture_directly(const char* level, const char* message, ...)
 	raven::capture(msg);
 }
 
-void craven_capture_directly_dsn(c_dsn_t* dsn, const char* level, const char* message, ...)
+void craven_capture_directly_dsn(dsn_t dsn, const char* level, const char* message, ...)
 {
 		raven::Message msg;
 	msg.put("level", level);
@@ -148,7 +112,7 @@ void craven_capture_directly_dsn(c_dsn_t* dsn, const char* level, const char* me
 	}
 	va_end(args);
 
-	raven::capture(msg, (raven::dsn_t*)dsn->pdsn_t);
+	((raven::Dsn*)dsn)->capture(msg);
 }
 
 void* craven_message_new(void)
@@ -184,12 +148,10 @@ void craven_message_putf(void* message, const char* key, const char* fmt, ...)
 
 void craven_message_send(void* message)
 {
-	raven::Message* msg = (raven::Message*)message;
-	raven::capture(*msg);
+	raven::capture(*((raven::Message*)message));
 }
 
-void craven_message_send_dsn(c_dsn_t* dsn, void* message)
+void craven_message_send_dsn(dsn_t dsn, void* message)
 {
-	raven::Message* msg = (raven::Message*)message;
-	raven::capture(*msg, (raven::dsn_t*)dsn->pdsn_t);
+	((raven::Dsn*)dsn)->capture(*((raven::Message*)message));
 }

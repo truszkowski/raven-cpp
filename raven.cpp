@@ -1,47 +1,3 @@
-
-/*
-                    +IMMMM .~MMZ.
-                 .MM NMMMMM  .MMMM
-                MMM. MMMMMMZ   MMMM.
-              .MMM, .MMMMMMM  ..MMMM
-              .MMM. ZMMMMMMM.   MMMM.
-              .MMM  =MMMMMMM.   MMMM.
-              .MMM . MMMMMMM.  MMMM
-                MMM: MMMMMMM .ZMMM
-                  MMM MMMMMM.~MO
-                      ~MMMN..   ...M.
-                        .?M8 .. +.NI
-                       . .....  MNM D
-                        : D..Z...MO.?.
-                          NM . M..  .~
-                         .~I...     .,
-                          .M.       M.
-                         .M.        :
-                        .M        .MM
-                       .7           M.
-                       M            MO
-                      M.            .8       .=MMMMMMM .
-                     M.             .I    MM$          ,M
-                    .                M MM .             .M
-                    M                 N              .   M
-                   .:                                M   ,.
-                                                     +   .
-                    ,                                Z  .M
-                   .M                               ..  ,
-                    M                  .            M.  M..  =+, .
-                     M        ?        D           :+   7  ..M$ ..
-                     .Z        M.       ,         DMM.     .. =M.
-                      ,M      .8,       M        M.. .MMM,...
-               .. N  M$ MI.    MM.      :.   ..M$
-             .$...  =  MM . D,,MM7       MMMM,
-                   Z...    MN   MM.      MMOMMM7..
-                      .D.,8      M.      :..:NM$
-                                 MM.      .MM~.,
-                                  MM.  ~=7DMMM$.
-
-          S   E   A    L       O   F      T   H   E       D   A   Y
-*/
-
 #include "raven/raven.h"
 
 #include <stdio.h>
@@ -75,161 +31,97 @@
 
 namespace raven {
 
-	bool init_dsn(dsn_t* dsn, const std::string& url, const bool proc)
-	{
-		dsn->global_started = 0;
-		dsn->global_attach_proc = proc;
-		dsn->global_seed = 0;
-		dsn->global_socket = -1;
-		
-		int n = sscanf(url.c_str(),
-		  "udp://%100[a-z0-9]:%100[a-z0-9]@%100[^:]:%d/%[0-9]%c",
-		  dsn->key, dsn->secret, dsn->host, &dsn->port, dsn->project, &dsn->none);
+	//!< initialize as useless
+	Dsn Dsn::default_instance("<useless>", DONT);
 
-		if (n != 5 || dsn->port <= 0 || dsn->port >= 65536) {
-			std::cerr << "raven::init(): cannot read url '" << url << "'" << std::endl;
-			return false;
+	void Dsn::init(const std::string& url, const int flags_)
+	{
+		if (socket >= 0) {
+			close(socket);
 		}
 
-		struct hostent* he = gethostbyname(dsn->host);
+		started = time(0); 
+		flags = flags_; 
+		socket = -1;
+		memset(&addr, 0x00, sizeof(addr));
+
+		key = "";
+		extras.clear();
+
+		//!< don't use
+		if (flags == DONT) {
+			return;
+		}
+
+		int port;
+		char c_key[100];
+		char c_secret[100];
+		char c_host[100];
+		char c_project[100];
+		char c_none;
+
+		int n = sscanf(url.c_str(),
+				"udp://%100[a-z0-9]:%100[a-z0-9]@%100[^:]:%d/%[0-9]%c",
+				c_key, c_secret, c_host, &port, c_project, &c_none);
+
+		if (n != 5 || port <= 0 || port >= 65536) {
+			std::cerr << "raven::Dsn::init(): cannot read url '" << url << "'" << std::endl;
+			throw std::invalid_argument("unknown port");
+		}
+
+		struct hostent* he = gethostbyname(c_host);
 		if (!he) {
-			std::cerr << "raven::init(): gethostbyname('" << dsn->host << "') failed: "
-			  << h_errno << ", " << hstrerror(h_errno) << std::endl;
-			return false;
+			std::cerr << "raven::Dsn::init(): gethostbyname('" << c_host << "') failed: "
+				<< h_errno << ", " << hstrerror(h_errno) << std::endl;
+			throw std::invalid_argument("unknown host");
 		}
 
 		struct in_addr** addr_list = (struct in_addr**) he->h_addr_list;
-		dsn->global_addr.sin_family = AF_INET;
-		dsn->global_addr.sin_addr = *addr_list[0];
-		dsn->global_addr.sin_port = htons(dsn->port);
+		addr.sin_family = AF_INET;
+		addr.sin_addr = *addr_list[0];
+		addr.sin_port = htons(port);
 
 		struct utsname sysname;
 		uname(&sysname);
 
-		dsn->global_key = dsn->key;
-		dsn->global_attach_proc = proc;
-		dsn->global_started = time(0);
-		dsn->global_seed = dsn->global_started;
+		key = c_key;
 
-		dsn->global_message["project"] = dsn->project;
-		dsn->global_message["server_name"] = sysname.nodename;
-		dsn->global_message["platform"] = "C++";
-		dsn->global_message["logger"] = "root";
-		dsn->global_message["extra.sys.machine"] = sysname.machine;
+		extras["project"] = c_project;
+		extras["server_name"] = sysname.nodename;
+		extras["platform"] = "C++";
+		extras["logger"] = "root";
+		extras["extra.sys.machine"] = sysname.machine;
 
-		dsn->global_socket = socket(AF_INET, SOCK_DGRAM, 0);
-		if (dsn->global_socket < 0) {
-			std::cerr << "raven::init(): socket failed: " << errno << ", " << strerror(errno) << std::endl;
-			return false;
+		socket = ::socket(AF_INET, SOCK_DGRAM, 0);
+		if (socket < 0) {
+			std::cerr << "raven::Dsn::init(): socket failed: " << errno << ", " << strerror(errno) << std::endl;
+			throw std::runtime_error("cannot create socket");
 		}
-
-		return true;
 	}
 
-
-	static std::map<std::string, std::string> global_message;
-	static std::string global_key;
-
-	static time_t global_started = 0;
-	static bool global_attach_proc = false;
-	static unsigned int global_seed = 0;
-	static int global_socket = -1;
-	static struct sockaddr_in global_addr;
-
-	bool init(const std::string& url, const bool proc)
-	{
-		char key[100], secret[100], host[100], project[100], none;
-		int port;
-
-		int n = sscanf(url.c_str(),
-		  "udp://%100[a-z0-9]:%100[a-z0-9]@%100[^:]:%d/%[0-9]%c",
-		  key, secret, host, &port, project, &none);
-
-		if (n != 5 || port <= 0 || port >= 65536) {
-			std::cerr << "raven::init(): cannot read url '" << url << "'" << std::endl;
-			return false;
-		}
-
-		struct hostent* he = gethostbyname(host);
-		if (!he) {
-			std::cerr << "raven::init(): gethostbyname('" << host << "') failed: "
-			  << h_errno << ", " << hstrerror(h_errno) << std::endl;
-			return false;
-		}
-
-		struct in_addr** addr_list = (struct in_addr**)he->h_addr_list;
-		global_addr.sin_family = AF_INET;
-		global_addr.sin_addr = *addr_list[0];
-		global_addr.sin_port = htons(port);
-
-		struct utsname sysname;
-		uname(&sysname);
-
-		global_key = key;
-		global_attach_proc = proc;
-		global_started = time(0);
-		global_seed = global_started;
-
-		global_message["project"] = project;
-		global_message["server_name"] = sysname.nodename;
-		global_message["platform"] = "C++";
-		global_message["logger"] = "root";
-		global_message["extra.sys.machine"] = sysname.machine;
-
-		global_socket = socket(AF_INET, SOCK_DGRAM, 0);
-		if (global_socket < 0) {
-			std::cerr << "raven::init(): socket failed: " << errno << ", " << strerror(errno) << std::endl;
-			return false;
-		}
-
-		return true;
-	}
-
-	bool init(const bool proc)
+	void Dsn::init(const int flags) 
 	{
 		const char* sentry_dsn = getenv("SENTRY_DSN");
-		if (sentry_dsn == NULL) return false;
 
-		return init(sentry_dsn, proc);
-	}
-
-	void add_global(const std::string& key, const std::string& value, dsn_t* dsn)
-	{
-		if(!dsn) {
-			global_message[key] = value;
-		} else {
-			dsn->global_message[key] = value;
+		if (sentry_dsn == NULL) {
+			std::cerr << "raven::Dsn::init(): missing environment variable SENTRY_DSN" << std::endl;
+			throw std::invalid_argument("missing environment variable SENTRY_DSN");
 		}
+
+		init(sentry_dsn, flags);
 	}
 
-	void add_global(const std::string& key, const long long& value, dsn_t* dsn)
+	static inline const char* gen_event_id(char* event_id, struct timeval& tv_now)
 	{
-		if(!dsn) {
-			global_message[key] = boost::lexical_cast<std::string>(value);
-		} else {
-			dsn->global_message[key] = boost::lexical_cast<std::string>(value);
-		}
+		static unsigned int pid = getpid();
+		unsigned int rnd = rand();
+
+		sprintf(event_id, "%.8x%.8x%.8x%.8x",
+				(unsigned int) tv_now.tv_sec, (unsigned int) tv_now.tv_usec, pid, rnd);
+		return event_id;
 	}
 
-	void add_global(const std::string& key, const unsigned long long& value, dsn_t* dsn)
-	{
-		if(!dsn) {
-			global_message[key] = boost::lexical_cast<std::string>(value);
-		} else {
-			dsn->global_message[key] =  boost::lexical_cast<std::string>(value);
-		}
-	}
-
-	void add_global(const std::string& key, const long double& value, dsn_t* dsn)
-	{
-		if(!dsn) {
-			global_message[key] = boost::lexical_cast<std::string>(value);
-		} else {
-			dsn->global_message[key] = boost::lexical_cast<std::string>(value);
-		}
-	}
-
-	static inline time_t capture_attach_main(Message& message, dsn_t* dsn)
+	time_t Dsn::attach_main(Message& message) const
 	{
 		struct timeval tv_now;
 		gettimeofday(&tv_now, NULL);
@@ -242,114 +134,78 @@ namespace raven {
 		strftime(tstamp_now, sizeof(tstamp_now), "%FT%T", &tm_now);
 
 		char event_id[33];
-		if(!dsn) {
-			sprintf(event_id, "%.8x%.8x%.8x%.8x",
-			  (unsigned int) tv_now.tv_sec, (unsigned int) tv_now.tv_usec,
-			  rand_r(&global_seed), rand_r(&global_seed));
-		} else {
-			sprintf(event_id, "%.8x%.8x%.8x%.8x",
-			  (unsigned int) tv_now.tv_sec, (unsigned int) tv_now.tv_usec,
-			  rand_r(&dsn->global_seed), rand_r(&dsn->global_seed));			
-		}
-		
-		message.put("event_id", event_id);
+		message.put("event_id", gen_event_id(event_id, tv_now));
 		message.put("timestamp", tstamp_now);
-		if(!dsn) {
-			message.put("extra.sys.uptime", boost::lexical_cast<std::string>(t_now - global_started));
-		} else {
-			message.put("extra.sys.uptime", boost::lexical_cast<std::string>(t_now - dsn->global_started));
-		}
+		message.put("extra.sys.uptime", (t_now - started));
 		return t_now;
 	}
 
-	static inline void capture_attach_proc(Message& message)
+	void Dsn::attach_proc(Message& message) const
 	{
-		std::ifstream status_file("/proc/self/status");
-		std::string line;
+		if (flags & ATTACH_PROC_STATUS) {
+			std::ifstream status_file("/proc/self/status");
+			std::string line;
 
-		while (std::getline(status_file, line)) {
-			size_t pos = line.find(':');
+			while (std::getline(status_file, line)) {
+				size_t pos = line.find(':');
 
-			if (line.compare(0, 2, "Vm", 0, 2) == 0 ||
-			  line.compare(0, 6, "FDSize", 0, 6) == 0 ||
-			  line.compare(0, 7, "Threads", 0, 7) == 0) {
-				message.put("extra.sys." + line.substr(0, pos), boost::trim_copy(line.substr(pos + 1)));
+				if (line.compare(0, 2, "Vm", 0, 2) == 0 ||
+						line.compare(0, 6, "FDSize", 0, 6) == 0 ||
+						line.compare(0, 7, "Threads", 0, 7) == 0) {
+					message.put("extra.sys." + line.substr(0, pos), boost::trim_copy(line.substr(pos + 1)));
+				}
 			}
 		}
 
-		std::ifstream load_file("/proc/loadavg");
-		std::getline(load_file, line);
-		message.put("extra.sys.load", line);
+		if (flags & ATTACH_PROC_LOAD) {
+			std::ifstream load_file("/proc/loadavg");
+			std::string line;
+
+			std::getline(load_file, line);
+			message.put("extra.sys.load", line);
+		}
 	}
 
-	static inline void capture_prepare_packet(const Message& message, time_t t_now, std::string& packet, dsn_t* dsn)
+	void Dsn::make_packet(const Message& message, time_t t_now, std::string& packet) const
 	{
 		std::string encoded;
 		std::stringstream packet_stream;
 
-		if(!dsn) {
-			encode(message, encoded);
+		encode(message, encoded);
 
-			packet_stream << "Sentry sentry_timestamp=" << t_now << ".0, sentry_client=raven-cpp/0.0.1, sentry_version=2.0, sentry_key=" << global_key << "\n\n" << encoded;
-			packet = packet_stream.str();
-		} else {
-			encode(message, encoded);
-
-			packet_stream << "Sentry sentry_timestamp=" << t_now << ".0, sentry_client=raven-cpp/0.0.1, sentry_version=2.0, sentry_key=" << dsn->global_key << "\n\n" << encoded;
-			packet = packet_stream.str();
-		}
+		packet_stream << "Sentry sentry_timestamp=" << t_now << ".0, sentry_client=raven-cpp/0.0.1, sentry_version=2.0, sentry_key=" << key << "\n\n" << encoded;
+		packet = packet_stream.str();
 	}
 
-	static inline void capture_send_packet(const std::string& packet, dsn_t* dsn)
+	void Dsn::send_packet(const std::string& packet) const
 	{
-		if(!dsn) {
-			ssize_t n = sendto(global_socket, packet.data(), packet.size(), MSG_DONTWAIT,
-			  (struct sockaddr*) &global_addr, sizeof(global_addr));
+		ssize_t n = sendto(socket, packet.data(), packet.size(), MSG_DONTWAIT,
+				(struct sockaddr*) &addr, sizeof(addr));
 
-			if (n < 0) {
-				std::cerr << "raven::capture_send_packet(): not sent: " << errno << ", " << strerror(errno) << std::endl;
-			}
-		} else {
-			ssize_t n = sendto(dsn->global_socket, packet.data(), packet.size(), MSG_DONTWAIT,
-			  (struct sockaddr*) &dsn->global_addr, sizeof(dsn->global_addr));
-
-			if (n < 0) {
-				std::cerr << "raven::capture_send_packet(): not sent: " << errno << ", " << strerror(errno) << std::endl;
-			}
+		if (n < 0) {
+			std::cerr << "raven::Dsn::send_packet(): not sent: " << errno << ", " << strerror(errno) << std::endl;
 		}
 	}
 
-	void capture(Message message, dsn_t* dsn)
+	void Dsn::capture(Message& message) const
 	{
 		// do nothing if init() not called
-		if ((!dsn && global_started == 0) || (dsn && dsn->global_started == 0)) {
-			return;
-		}
+		if (started == 0) return;
 
 		try {
-			time_t t_now = capture_attach_main(message, dsn);
+			time_t t_now = attach_main(message);
+			attach_proc(message);
 
-			if ((dsn && dsn->global_attach_proc) || (global_attach_proc && !dsn)) {
-				capture_attach_proc(message);
-			}
-
-			if (!dsn) {
-				for (std::map<std::string, std::string>::const_iterator
-					it = global_message.begin(); it != global_message.end(); ++it) {
-					message.put(it->first, it->second);
-				}
-			} else {
-				for (std::map<std::string, std::string>::const_iterator
-					it = dsn->global_message.begin(); it != dsn->global_message.end(); ++it) {
-					message.put(it->first, it->second);
-				}
+			for (std::map<std::string, std::string>::const_iterator
+					it = extras.begin(); it != extras.end(); ++it) {
+				message.put(it->first, it->second);
 			}
 
 			std::string packet;
-			capture_prepare_packet(message, t_now, packet, dsn);
-			capture_send_packet(packet, dsn);
+			make_packet(message, t_now, packet);
+			send_packet(packet);
 		} catch (const std::exception& e) {
-			std::cerr << "raven::capture(): exception catched: " << e.what() << std::endl;
+			std::cerr << "raven::Dsn::capture(): exception catched: " << e.what() << std::endl;
 		}
 	}
 
@@ -385,6 +241,8 @@ namespace raven {
 		typedef base64_from_binary<transform_width<std::string::const_iterator, 6, 8> > b64iter;
 
 		output.assign(b64iter(compressed.begin()), b64iter(compressed.end()));
+
+		// need to fill '=' - boost doesn't use '=', just converts bits
 		int padding = output.size() % 4;
 		if (padding > 0) output.append(4 - padding, '=');
 	}
@@ -392,7 +250,7 @@ namespace raven {
 	bool decode(const std::string& encoded, Message& message)
 	{
 		try {
-			// need to replace '=' to 'A' - boost sense of humor
+			// need to replace '=' to 'A' - boost doesn't use '=', just converts bits
 			std::string prepared = encoded;
 			if (prepared.size() > 0 && prepared[prepared.size() - 1] == '=') prepared[prepared.size() - 1] = 'A';
 			if (prepared.size() > 1 && prepared[prepared.size() - 2] == '=') prepared[prepared.size() - 2] = 'A';

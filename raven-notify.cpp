@@ -25,13 +25,21 @@ int main(int argc, char** argv)
 			cout << "extra.what: nothing" << endl;
 			cout << endl;
 			return -1;
-		} else if (!raven::init()) {
-			cout << "cannot initialize raven module, incorrent url" << endl;
+		} else {
+			try {
+				raven::Dsn::set_default();
+			} catch (std::exception& e) {
+				cout << "cannot initialize raven module, " << e.what() << endl;
+				return -1;
+			}
+		}
+	} else {
+		try {
+			raven::Dsn::set_default(argv[1]);
+		} catch (std::exception& e) {
+			cout << "cannot initialize raven module, " << e.what() << endl;
 			return -1;
 		}
-	} else if (!raven::init(argv[1])) {
-		cout << "cannot initialize raven module, incorrect url" << endl;
-		return -1;
 	}
 
 	raven::Message msg;

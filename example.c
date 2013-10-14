@@ -1,54 +1,10 @@
-/*
-                    +IMMMM .~MMZ.
-                 .MM NMMMMM  .MMMM
-                MMM. MMMMMMZ   MMMM.
-              .MMM, .MMMMMMM  ..MMMM
-              .MMM. ZMMMMMMM.   MMMM.
-              .MMM  =MMMMMMM.   MMMM.
-              .MMM . MMMMMMM.  MMMM
-                MMM: MMMMMMM .ZMMM
-                  MMM MMMMMM.~MO
-                      ~MMMN..   ...M.
-                        .?M8 .. +.NI
-                       . .....  MNM D
-                        : D..Z...MO.?.
-                          NM . M..  .~
-                         .~I...     .,
-                          .M.       M.
-                         .M.        :
-                        .M        .MM
-                       .7           M.
-                       M            MO
-                      M.            .8       .=MMMMMMM .
-                     M.             .I    MM$          ,M
-                    .                M MM .             .M
-                    M                 N              .   M
-                   .:                                M   ,.
-                                                     +   .
-                    ,                                Z  .M
-                   .M                               ..  ,
-                    M                  .            M.  M..  =+, .
-                     M        ?        D           :+   7  ..M$ ..
-                     .Z        M.       ,         DMM.     .. =M.
-                      ,M      .8,       M        M.. .MMM,...
-               .. N  M$ MI.    MM.      :.   ..M$
-             .$...  =  MM . D,,MM7       MMMM,
-                   Z...    MN   MM.      MMOMMM7..
-                      .D.,8      M.      :..:NM$
-                                 MM.      .MM~.,
-                                  MM.  ~=7DMMM$.
-
-          S   E   A    L       O   F      T   H   E       D   A   Y
-*/
-
-
 #include "raven/craven.h"
 
 #include <stdio.h>
 
 int main(void)
 {
-	int ret = craven_init("udp://12345678123456781234567812345678:01230123012301230123012301230123@127.0.0.1:12340/1", 1);
+	int ret = craven_init("udp://12345678123456781234567812345678:01230123012301230123012301230123@127.0.0.1:12340/1", 3);
 
 	if (ret) {
 		printf("craven_init failed\n");
@@ -65,8 +21,7 @@ int main(void)
 	craven_message_send(msg);
 	
 	// custom dsn example
-	c_dsn_t dsn;
-	ret = craven_init_dsn(&dsn, "udp://77777777777777777777777777777777:88888888888888888888888888888888@127.0.0.1:12340/1", 1 );
+	dsn_t dsn = craven_init_dsn("udp://77777777777777777777777777777777:88888888888888888888888888888888@127.0.0.1:12340/1", 0);
 	
 	craven_message_send_dsn(&dsn, msg);
 
